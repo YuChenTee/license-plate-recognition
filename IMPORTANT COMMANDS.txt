@@ -1,0 +1,2 @@
+# activate venv before running py files
+lp-recognition\Scripts\activate
