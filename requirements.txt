@@ -25,7 +25,7 @@ matplotlib==3.8.3
 Pillow==10.2.0
 
 # OCR engines
-easyocr==1.7.1
+easyocr==1.7.2
 paddlepaddle==2.6.0
 paddleocr==2.7.0.3
 mmengine==0.10.3
