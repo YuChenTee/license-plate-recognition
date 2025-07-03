@@ -28,7 +28,7 @@ Pillow==10.2.0
 easyocr==1.7.1
 paddlepaddle==2.6.0
 paddleocr==2.7.0.3
-mmengine==0.10.3
+mmengine==0.10.7
 mmcv==2.1.0
 mmocr==1.0.1
 
