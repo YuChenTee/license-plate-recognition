@@ -12,7 +12,7 @@ output_csv = r'D:\Lecture notes and exercises\Computer Vision\license-plate-reco
 # Manually set path to tesseract.exe if not in PATH
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-# --- Enhanced Preprocessing Function ---
+# --- Preprocessing Function ---
 def preprocess_plate(img):
     """Apply advanced preprocessing for license plates"""
     # Convert to grayscale
@@ -76,7 +76,7 @@ print(f"✅ Generated CSV with {len(data)} entries")
 def show_batches(images, batch_size=20):
     for i in range(0, len(images), batch_size):
         batch = images[i:i+batch_size]
-        plt.figure(figsize=(20, 20))
+        plt.figure()
         for j, (img, name, text) in enumerate(batch):
             plt.subplot(5, 4, j+1)
             plt.imshow(img, cmap='gray')

@@ -59,19 +59,6 @@ def run_paddle_ocr(img):
         print(f"PaddleOCR failed: {e}")
         return "", 0.0
 
-# --- Main OCR Handler ---
-def perform_ocr(image_path):
-    print(f"Processing: {image_path}")
-    img = cv2.imread(image_path)
-    if img is None:
-        print(f"  Failed to load image: {image_path}")
-        return ""
-
-    processed_img = preprocess_plate(img)
-    text, conf = run_paddle_ocr(processed_img)
-    print(f"  Final result: {text}")
-    return text
-
 # --- Batch Processing ---
 data = []
 preview_images = []
@@ -89,7 +76,15 @@ for i, image_filename in enumerate(image_files):
         continue
 
     print(f"\n=== Processing {i+1}: {image_filename} ===")
-    ocr_text = perform_ocr(image_path)
+
+    img = cv2.imread(image_path)
+    if img is None:
+        print(f"  Failed to load image: {image_path}")
+        continue
+
+    processed_img = preprocess_plate(img)
+    ocr_text, _ = run_paddle_ocr(processed_img)
+    print(f"  Final result: {ocr_text}")
 
     data.append({
         'filename': image_filename,
@@ -97,10 +92,7 @@ for i, image_filename in enumerate(image_files):
         'text_length': len(ocr_text)
     })
 
-    img = cv2.imread(image_path)
-    if img is not None:
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        preview_images.append((img_rgb, image_filename, ocr_text))
+    preview_images.append((processed_img, image_filename, ocr_text))
 
 # --- Save CSV ---
 df = pd.DataFrame(data)
@@ -117,22 +109,17 @@ for idx, row in df.iterrows():
     print(f"  {row['filename']}: '{row['ocr_text']}'")
 
 # --- Visual Diagnostics ---
-def plot_results(images, batch_size=20):
+def show_batches(images, batch_size=20):
     for i in range(0, len(images), batch_size):
-        batch = images[i:i + batch_size]
-        n = len(batch)
-        cols = min(3, n)
-        rows = (n + cols - 1) // cols
-        plt.figure(figsize=(15, 5 * rows))
-
+        batch = images[i:i+batch_size]
+        plt.figure()
         for j, (img, name, text) in enumerate(batch):
-            plt.subplot(rows, cols, j + 1)
+            plt.subplot(5, 4, j+1)
             plt.imshow(img)
-            plt.title(f"{name}\nOCR: '{text}'", fontsize=10)
+            plt.title(f"{name}\n{text}", fontsize=10)
             plt.axis('off')
-
         plt.tight_layout()
         plt.show()
 
 if preview_images:
-    plot_results(preview_images)
+    show_batches(preview_images)

@@ -3,9 +3,9 @@ from pathlib import Path
 import subprocess
 
 # Paths
-data_yaml = "../data.yaml"  # Update path if needed
+data_yaml = "data.yaml"  # Update path if needed
 weights_init = "yolov5s.pt"
-run_name = "lp-detector"
+run_name = "lp-detector8"
 image_size = 320
 batch_size = 16
 epochs = 50
@@ -34,8 +34,8 @@ def run_command(cmd, description="Running command"):
 
 if __name__ == "__main__":
     print("🚀 Starting training and evaluation for license plate detection...")
-    run_command(train_cmd, "Training YOLOv5 on custom LP dataset")
-    # run_command(eval_cmd, "Evaluating best model")
+    # run_command(train_cmd, "Training YOLOv5 on custom LP dataset")
+    run_command(eval_cmd, "Evaluating best model")
     
     # Confirm where best weights are saved
     best_weights_path = Path(f"runs/train/{run_name}/weights/best.pt")

@@ -1,5 +1,7 @@
 import pandas as pd
 from difflib import SequenceMatcher
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 def load_csv(path, is_ground_truth=False):
     """Load CSV and optionally filter empty OCR results."""
@@ -58,19 +60,19 @@ if __name__ == "__main__":
     pytess_path = 'labels_pytesseract.csv'
     easyocr_path = 'labels_easyocr.csv'
     paddleocr_path = 'labels_paddleocr.csv'  # Assuming you have a PaddleOCR CSV
-    combined_path = 'labels_easyocr_improved.csv'
+    combined_path = 'labels_combinedocr.csv'
 
     # Load data
     gt_df = load_csv(labels_path, is_ground_truth=True).rename(columns={'ocr_text': 'ocr_text_gt'})
     tess_df = load_csv(pytess_path).rename(columns={'ocr_text': 'ocr_text_pytesseract'})
     easy_df = load_csv(easyocr_path).rename(columns={'ocr_text': 'ocr_text_easyocr'})
     paddle_df = load_csv(paddleocr_path).rename(columns={'ocr_text': 'ocr_text_paddleocr'})
-    combined_df = load_csv(combined_path).rename(columns={'ocr_text': 'ocr_text_improved'})
+    combined_df = load_csv(combined_path).rename(columns={'ocr_text': 'ocr_text_combinedocr'})
 
     compare_ocr(gt_df, tess_df, 'pytesseract')
     compare_ocr(gt_df, easy_df, 'easyocr')
     compare_ocr(gt_df, paddle_df, 'paddleocr')
-    compare_ocr(gt_df, combined_df, 'improved')
+    compare_ocr(gt_df, combined_df, 'combinedocr')
 
     # Merge all on filename
     df_all = gt_df.merge(tess_df, on='filename', how='inner') \
@@ -83,7 +85,7 @@ if __name__ == "__main__":
     df_all['ocr_text_pytesseract_norm'] = df_all['ocr_text_pytesseract'].apply(normalize)
     df_all['ocr_text_easyocr_norm'] = df_all['ocr_text_easyocr'].apply(normalize)
     df_all['ocr_text_paddleocr_norm'] = df_all['ocr_text_paddleocr'].apply(normalize)
-    df_all['ocr_text_improved_norm'] = df_all['ocr_text_improved'].apply(normalize)
+    df_all['ocr_text_combinedocr_norm'] = df_all['ocr_text_combinedocr'].apply(normalize)
 
     # Optional: Add match and similarity scores
     def get_score(gt, pred): return SequenceMatcher(None, gt, pred).ratio()
@@ -96,9 +98,44 @@ if __name__ == "__main__":
     df_all['match_paddleocr'] = (df_all['ocr_text_gt_norm'] == df_all['ocr_text_paddleocr_norm'])
     df_all['similarity_paddleocr'] = df_all.apply(lambda row: get_score(row['ocr_text_gt_norm'], row['ocr_text_paddleocr_norm']), axis=1)
 
-    df_all['match_improved'] = (df_all['ocr_text_gt_norm'] == df_all['ocr_text_improved_norm'])
-    df_all['similarity_improved'] = df_all.apply(lambda row: get_score(row['ocr_text_gt_norm'], row['ocr_text_improved_norm']), axis=1)
+    df_all['match_combinedocr'] = (df_all['ocr_text_gt_norm'] == df_all['ocr_text_combinedocr_norm'])
+    df_all['similarity_combinedocr'] = df_all.apply(lambda row: get_score(row['ocr_text_gt_norm'], row['ocr_text_combinedocr_norm']), axis=1)
 
     # Export everything
     df_all.to_csv("ocr_all_comparison.csv", index=False)
     print("✅ Merged comparison saved to ocr_all_comparison.csv")
+
+    # Set plot style
+    sns.set(style="whitegrid")
+
+    # 1. Bar Plot: Exact Match Accuracy
+    match_counts = {
+        'PyTesseract': df_all['match_pytesseract'].mean(),
+        'EasyOCR': df_all['match_easyocr'].mean(),
+        'PaddleOCR': df_all['match_paddleocr'].mean(),
+        'CombinedOCR': df_all['match_combinedocr'].mean()
+    }
+
+    plt.figure(figsize=(8, 5))
+    sns.barplot(x=list(match_counts.keys()), y=[v * 100 for v in match_counts.values()], palette='pastel')
+    plt.title("Exact Match Accuracy (%)", fontsize=14)
+    plt.ylabel("Accuracy (%)")
+    plt.ylim(0, 100)
+    plt.tight_layout()
+    plt.show()
+
+    # 2. Box Plot: Similarity Scores
+    similarity_data = pd.DataFrame({
+        'PyTesseract': df_all['similarity_pytesseract'],
+        'EasyOCR': df_all['similarity_easyocr'],
+        'PaddleOCR': df_all['similarity_paddleocr'],
+        'CombinedOCR': df_all['similarity_combinedocr']
+    })
+
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(data=similarity_data, palette='Set2')
+    plt.title("Distribution of Similarity Scores", fontsize=14)
+    plt.ylabel("Similarity (0 to 1)")
+    plt.ylim(0, 1.05)
+    plt.tight_layout()
+    plt.show()

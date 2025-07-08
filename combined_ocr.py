@@ -10,7 +10,7 @@ import re
 
 # --- Configuration ---
 image_dir = r'D:\Lecture notes and exercises\Computer Vision\license-plate-recognition\yolov5\runs\detect\lp_test\crops\license_plate'
-output_csv = r'D:\Lecture notes and exercises\Computer Vision\license-plate-recognition\yolov5\labels_easyocr_improved.csv'
+output_csv = r'D:\Lecture notes and exercises\Computer Vision\license-plate-recognition\yolov5\labels_combinedocr.csv'
 
 # Initialize OCR engines
 print("Initializing OCR engines...")
@@ -282,19 +282,6 @@ def ensemble_ocr(img):
     
     return ""
 
-# --- OCR Processing ---
-def perform_ocr(image_path):
-    print(f"Processing: {image_path}")
-    img = cv2.imread(image_path)
-    if img is None:
-        print(f"  Failed to load image: {image_path}")
-        return ""
-    
-    # Get ensemble result
-    result = ensemble_ocr(img)
-    print(f"  Final result: {result}")
-    return result
-
 # --- Main Processing Loop ---
 data = []
 preview_images = []
@@ -302,7 +289,6 @@ failed_count = 0
 
 print("Starting OCR processing with voting system (including Tesseract fallback)...")
 
-# Process only a few images first for debugging
 image_files = [f for f in os.listdir(image_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
 
 for i, image_filename in enumerate(image_files):
@@ -313,20 +299,24 @@ for i, image_filename in enumerate(image_files):
         continue
         
     print(f"\n=== Processing {i+1}: {image_filename} ===")
-    ocr_text = perform_ocr(image_path)
-    
+    img = cv2.imread(image_path)
+    if img is None:
+        print(f"  Failed to load image: {image_path}")
+        continue
+
+    ocr_text = ensemble_ocr(img)
+    print(f"  Final result: {ocr_text}")
+
     # Store results
     data.append({
         'filename': image_filename, 
         'ocr_text': ocr_text,
         'text_length': len(ocr_text)
     })
-    
-    # For preview
-    img = cv2.imread(image_path)
-    if img is not None:
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        preview_images.append((img_rgb, image_filename, ocr_text))
+
+    # For visual preview (use processed image)
+    processed_img = preprocess_plate(img)
+    preview_images.append((processed_img, image_filename, ocr_text))
 
 # --- Save CSV ---
 df = pd.DataFrame(data)
@@ -334,7 +324,7 @@ df.to_csv(output_csv, index=False)
 print(f"\n✅ OCR finished. Saved to {output_csv}")
 print(f"Processed {len(data)} plates, {failed_count} files missing")
 
-# Print statistics
+# --- Statistics ---
 print("\n--- OCR Statistics ---")
 print(f"Average text length: {df['text_length'].mean():.1f}")
 print(f"Empty results: {len(df[df['text_length'] == 0])}")
@@ -343,25 +333,17 @@ for idx, row in df.iterrows():
     print(f"  {row['filename']}: '{row['ocr_text']}'")
 
 # --- Visual Diagnostics ---
-def plot_results(images, batch_size=20):
+def show_batches(images, batch_size=20):
     for i in range(0, len(images), batch_size):
-        batch = images[i:i + batch_size]
-        n = len(batch)
-        
-        cols = min(3, n)
-        rows = (n + cols - 1) // cols
-        
-        plt.figure(figsize=(15, 5 * rows))
-        
+        batch = images[i:i+batch_size]
+        plt.figure()
         for j, (img, name, text) in enumerate(batch):
-            plt.subplot(rows, cols, j + 1)
+            plt.subplot(5, 4, j+1)
             plt.imshow(img)
-            plt.title(f"{name}\nOCR: '{text}'", fontsize=10)
+            plt.title(f"{name}\n{text}", fontsize=10)
             plt.axis('off')
-        
         plt.tight_layout()
         plt.show()
 
-# Display results
 if preview_images:
-    plot_results(preview_images)
+    show_batches(preview_images)

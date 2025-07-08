@@ -1,0 +1,6 @@
+path: dataset_lp
+train: images/train
+val: images/val
+
+nc: 1
+names: ["license_plate"]
