@@ -1,105 +1,122 @@
-import pandas as pd
 from difflib import SequenceMatcher
+
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
+
 
 def load_csv(path, is_ground_truth=False):
     """Load CSV and optionally filter empty OCR results."""
     df = pd.read_csv(path)
-    df['filename'] = df['filename'].astype(str)
-    df['ocr_text'] = df['ocr_text'].astype(str).str.strip()  # Now using 'ocr_text'
-    
+    df["filename"] = df["filename"].astype(str)
+    df["ocr_text"] = df["ocr_text"].astype(str).str.strip()  # Now using 'ocr_text'
+
     # Only filter empty entries if loading ground truth
     if is_ground_truth:
-        df = df[df['ocr_text'] != 'nan']
-    
-    return df[['filename', 'ocr_text']]
+        df = df[df["ocr_text"] != "nan"]
+
+    return df[["filename", "ocr_text"]]
+
 
 def normalize(text):
-    """Normalize text for comparison: 
+    """Normalize text for comparison:
     - Convert to uppercase
     - Remove all spaces and special characters
-    - Only allow alphanumeric characters (0-9, A-Z)
+    - Only allow alphanumeric characters (0-9, A-Z).
     """
-    allowed_chars = set('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    allowed_chars = set("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
     # Convert to string, uppercase, and filter allowed characters
-    normalized = ''.join(c for c in str(text).upper() if c in allowed_chars)
+    normalized = "".join(c for c in str(text).upper() if c in allowed_chars)
     return normalized
+
 
 def compare_ocr(gt_df, ocr_df, label):
     """Compare OCR results with ground truth, skipping empty GT entries."""
     # Merge dataframes on filename (inner join to skip missing filenames)
-    merged = gt_df.merge(ocr_df, on='filename', how='inner', suffixes=('_gt', f'_{label}'))
-    
+    merged = gt_df.merge(ocr_df, on="filename", how="inner", suffixes=("_gt", f"_{label}"))
+
     # Normalize text
-    merged['ocr_text_gt_norm'] = merged['ocr_text_gt'].apply(normalize)
-    merged[f'ocr_text_{label}_norm'] = merged[f'ocr_text_{label}'].apply(normalize)
-    
+    merged["ocr_text_gt_norm"] = merged["ocr_text_gt"].apply(normalize)
+    merged[f"ocr_text_{label}_norm"] = merged[f"ocr_text_{label}"].apply(normalize)
+
     # Calculate metrics
-    exact_matches = (merged['ocr_text_gt_norm'] == merged[f'ocr_text_{label}_norm']).sum()
+    exact_matches = (merged["ocr_text_gt_norm"] == merged[f"ocr_text_{label}_norm"]).sum()
     total = len(merged)
     accuracy = exact_matches / total if total > 0 else 0
-    
+
     similarities = [
         SequenceMatcher(None, gt, pred).ratio()
-        for gt, pred in zip(merged['ocr_text_gt_norm'], merged[f'ocr_text_{label}_norm'])
+        for gt, pred in zip(merged["ocr_text_gt_norm"], merged[f"ocr_text_{label}_norm"])
     ]
     avg_similarity = sum(similarities) / len(similarities) if similarities else 0
-    
+
     # Print results
     print(f"📊 {label} OCR Results")
     print(f"- Total Samples: {total}")
     print(f"- Exact Match Accuracy: {accuracy * 100:.2f}%")
     print(f"- Average Similarity: {avg_similarity * 100:.2f}%")
     print("-" * 40)
-    
+
     return merged
 
+
 if __name__ == "__main__":
-    labels_path = 'labels.csv'
-    pytess_path = 'labels_pytesseract.csv'
-    easyocr_path = 'labels_easyocr.csv'
-    paddleocr_path = 'labels_paddleocr.csv'  # Assuming you have a PaddleOCR CSV
-    combined_path = 'labels_combinedocr.csv'
+    labels_path = "labels.csv"
+    pytess_path = "labels_pytesseract.csv"
+    easyocr_path = "labels_easyocr.csv"
+    paddleocr_path = "labels_paddleocr.csv"  # Assuming you have a PaddleOCR CSV
+    combined_path = "labels_combinedocr.csv"
 
     # Load data
-    gt_df = load_csv(labels_path, is_ground_truth=True).rename(columns={'ocr_text': 'ocr_text_gt'})
-    tess_df = load_csv(pytess_path).rename(columns={'ocr_text': 'ocr_text_pytesseract'})
-    easy_df = load_csv(easyocr_path).rename(columns={'ocr_text': 'ocr_text_easyocr'})
-    paddle_df = load_csv(paddleocr_path).rename(columns={'ocr_text': 'ocr_text_paddleocr'})
-    combined_df = load_csv(combined_path).rename(columns={'ocr_text': 'ocr_text_combinedocr'})
+    gt_df = load_csv(labels_path, is_ground_truth=True).rename(columns={"ocr_text": "ocr_text_gt"})
+    tess_df = load_csv(pytess_path).rename(columns={"ocr_text": "ocr_text_pytesseract"})
+    easy_df = load_csv(easyocr_path).rename(columns={"ocr_text": "ocr_text_easyocr"})
+    paddle_df = load_csv(paddleocr_path).rename(columns={"ocr_text": "ocr_text_paddleocr"})
+    combined_df = load_csv(combined_path).rename(columns={"ocr_text": "ocr_text_combinedocr"})
 
-    compare_ocr(gt_df, tess_df, 'pytesseract')
-    compare_ocr(gt_df, easy_df, 'easyocr')
-    compare_ocr(gt_df, paddle_df, 'paddleocr')
-    compare_ocr(gt_df, combined_df, 'combinedocr')
+    compare_ocr(gt_df, tess_df, "pytesseract")
+    compare_ocr(gt_df, easy_df, "easyocr")
+    compare_ocr(gt_df, paddle_df, "paddleocr")
+    compare_ocr(gt_df, combined_df, "combinedocr")
 
     # Merge all on filename
-    df_all = gt_df.merge(tess_df, on='filename', how='inner') \
-                  .merge(easy_df, on='filename', how='inner') \
-                  .merge(paddle_df, on='filename', how='inner') \
-                  .merge(combined_df, on='filename', how='inner')
+    df_all = (
+        gt_df.merge(tess_df, on="filename", how="inner")
+        .merge(easy_df, on="filename", how="inner")
+        .merge(paddle_df, on="filename", how="inner")
+        .merge(combined_df, on="filename", how="inner")
+    )
 
     # Normalize columns
-    df_all['ocr_text_gt_norm'] = df_all['ocr_text_gt'].apply(normalize)
-    df_all['ocr_text_pytesseract_norm'] = df_all['ocr_text_pytesseract'].apply(normalize)
-    df_all['ocr_text_easyocr_norm'] = df_all['ocr_text_easyocr'].apply(normalize)
-    df_all['ocr_text_paddleocr_norm'] = df_all['ocr_text_paddleocr'].apply(normalize)
-    df_all['ocr_text_combinedocr_norm'] = df_all['ocr_text_combinedocr'].apply(normalize)
+    df_all["ocr_text_gt_norm"] = df_all["ocr_text_gt"].apply(normalize)
+    df_all["ocr_text_pytesseract_norm"] = df_all["ocr_text_pytesseract"].apply(normalize)
+    df_all["ocr_text_easyocr_norm"] = df_all["ocr_text_easyocr"].apply(normalize)
+    df_all["ocr_text_paddleocr_norm"] = df_all["ocr_text_paddleocr"].apply(normalize)
+    df_all["ocr_text_combinedocr_norm"] = df_all["ocr_text_combinedocr"].apply(normalize)
 
     # Optional: Add match and similarity scores
-    def get_score(gt, pred): return SequenceMatcher(None, gt, pred).ratio()
-    df_all['match_pytesseract'] = (df_all['ocr_text_gt_norm'] == df_all['ocr_text_pytesseract_norm'])
-    df_all['similarity_pytesseract'] = df_all.apply(lambda row: get_score(row['ocr_text_gt_norm'], row['ocr_text_pytesseract_norm']), axis=1)
+    def get_score(gt, pred):
+        return SequenceMatcher(None, gt, pred).ratio()
 
-    df_all['match_easyocr'] = (df_all['ocr_text_gt_norm'] == df_all['ocr_text_easyocr_norm'])
-    df_all['similarity_easyocr'] = df_all.apply(lambda row: get_score(row['ocr_text_gt_norm'], row['ocr_text_easyocr_norm']), axis=1)
+    df_all["match_pytesseract"] = df_all["ocr_text_gt_norm"] == df_all["ocr_text_pytesseract_norm"]
+    df_all["similarity_pytesseract"] = df_all.apply(
+        lambda row: get_score(row["ocr_text_gt_norm"], row["ocr_text_pytesseract_norm"]), axis=1
+    )
 
-    df_all['match_paddleocr'] = (df_all['ocr_text_gt_norm'] == df_all['ocr_text_paddleocr_norm'])
-    df_all['similarity_paddleocr'] = df_all.apply(lambda row: get_score(row['ocr_text_gt_norm'], row['ocr_text_paddleocr_norm']), axis=1)
+    df_all["match_easyocr"] = df_all["ocr_text_gt_norm"] == df_all["ocr_text_easyocr_norm"]
+    df_all["similarity_easyocr"] = df_all.apply(
+        lambda row: get_score(row["ocr_text_gt_norm"], row["ocr_text_easyocr_norm"]), axis=1
+    )
 
-    df_all['match_combinedocr'] = (df_all['ocr_text_gt_norm'] == df_all['ocr_text_combinedocr_norm'])
-    df_all['similarity_combinedocr'] = df_all.apply(lambda row: get_score(row['ocr_text_gt_norm'], row['ocr_text_combinedocr_norm']), axis=1)
+    df_all["match_paddleocr"] = df_all["ocr_text_gt_norm"] == df_all["ocr_text_paddleocr_norm"]
+    df_all["similarity_paddleocr"] = df_all.apply(
+        lambda row: get_score(row["ocr_text_gt_norm"], row["ocr_text_paddleocr_norm"]), axis=1
+    )
+
+    df_all["match_combinedocr"] = df_all["ocr_text_gt_norm"] == df_all["ocr_text_combinedocr_norm"]
+    df_all["similarity_combinedocr"] = df_all.apply(
+        lambda row: get_score(row["ocr_text_gt_norm"], row["ocr_text_combinedocr_norm"]), axis=1
+    )
 
     # Export everything
     df_all.to_csv("ocr_all_comparison.csv", index=False)
@@ -110,14 +127,14 @@ if __name__ == "__main__":
 
     # 1. Bar Plot: Exact Match Accuracy
     match_counts = {
-        'PyTesseract': df_all['match_pytesseract'].mean(),
-        'EasyOCR': df_all['match_easyocr'].mean(),
-        'PaddleOCR': df_all['match_paddleocr'].mean(),
-        'CombinedOCR': df_all['match_combinedocr'].mean()
+        "PyTesseract": df_all["match_pytesseract"].mean(),
+        "EasyOCR": df_all["match_easyocr"].mean(),
+        "PaddleOCR": df_all["match_paddleocr"].mean(),
+        "CombinedOCR": df_all["match_combinedocr"].mean(),
     }
 
     plt.figure(figsize=(8, 5))
-    sns.barplot(x=list(match_counts.keys()), y=[v * 100 for v in match_counts.values()], palette='pastel')
+    sns.barplot(x=list(match_counts.keys()), y=[v * 100 for v in match_counts.values()], palette="pastel")
     plt.title("Exact Match Accuracy (%)", fontsize=14)
     plt.ylabel("Accuracy (%)")
     plt.ylim(0, 100)
@@ -125,15 +142,17 @@ if __name__ == "__main__":
     plt.show()
 
     # 2. Box Plot: Similarity Scores
-    similarity_data = pd.DataFrame({
-        'PyTesseract': df_all['similarity_pytesseract'],
-        'EasyOCR': df_all['similarity_easyocr'],
-        'PaddleOCR': df_all['similarity_paddleocr'],
-        'CombinedOCR': df_all['similarity_combinedocr']
-    })
+    similarity_data = pd.DataFrame(
+        {
+            "PyTesseract": df_all["similarity_pytesseract"],
+            "EasyOCR": df_all["similarity_easyocr"],
+            "PaddleOCR": df_all["similarity_paddleocr"],
+            "CombinedOCR": df_all["similarity_combinedocr"],
+        }
+    )
 
     plt.figure(figsize=(10, 6))
-    sns.boxplot(data=similarity_data, palette='Set2')
+    sns.boxplot(data=similarity_data, palette="Set2")
     plt.title("Distribution of Similarity Scores", fontsize=14)
     plt.ylabel("Similarity (0 to 1)")
     plt.ylim(0, 1.05)

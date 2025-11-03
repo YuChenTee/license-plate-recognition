@@ -1,11 +1,15 @@
 import os
+
 import cv2
 import matplotlib.pyplot as plt
 
 # --- Configuration ---
-detection_image_path = r'D:\Lecture notes and exercises\Computer Vision\license-plate-recognition\yolov5\runs\detect\lp_test\cars178.png'
-license_plate_image_path = r'D:\Lecture notes and exercises\Computer Vision\license-plate-recognition\yolov5\runs\detect\lp_test\crops\license_plate\Cars178.jpg'
+detection_image_path = (
+    r"D:\Lecture notes and exercises\Computer Vision\license-plate-recognition\yolov5\runs\detect\lp_test\cars178.png"
+)
+license_plate_image_path = r"D:\Lecture notes and exercises\Computer Vision\license-plate-recognition\yolov5\runs\detect\lp_test\crops\license_plate\Cars178.jpg"
 recognized_text = "522 92Z"
+
 
 # --- Preprocessing Steps for Visualization ---
 def preprocess_steps(img):
@@ -41,11 +45,13 @@ def preprocess_steps(img):
     # Step 6: Recognised Text Overlay
     result_img = cv2.cvtColor(denoised, cv2.COLOR_GRAY2RGB)
     annotated = result_img.copy()
-    cv2.putText(annotated, f"OCR: {recognized_text}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                0.9, (0, 255, 0), 2, cv2.LINE_AA)
+    cv2.putText(
+        annotated, f"OCR: {recognized_text}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2, cv2.LINE_AA
+    )
     steps["OCR Result"] = annotated
 
     return steps
+
 
 # --- Visualization ---
 def plot_steps(steps, title="Image"):
@@ -54,14 +60,15 @@ def plot_steps(steps, title="Image"):
     for i, (name, img) in enumerate(steps.items()):
         plt.subplot(1, n, i + 1)
         if len(img.shape) == 2:
-            plt.imshow(img, cmap='gray')
+            plt.imshow(img, cmap="gray")
         else:
             plt.imshow(img)
         plt.title(name, fontsize=10)
-        plt.axis('off')
+        plt.axis("off")
     plt.suptitle(title, fontsize=14)
     plt.tight_layout()
     plt.show()
+
 
 # --- Main ---
 img = cv2.imread(license_plate_image_path)
